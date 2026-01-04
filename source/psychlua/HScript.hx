@@ -1,18 +1,17 @@
 package psychlua;
 
 import flixel.FlxBasic;
-import objects.Character;
-import psychlua.LuaUtils;
-import psychlua.CustomSubstate;
 import flixel.FlxG;
-import flixel.util.FlxTimer;
-import flixel.tweens.FlxTween;
-import flixel.tweens.FlxEase;
 import flixel.util.FlxColor;
 import flixel.math.FlxMath;
+import flixel.tweens.FlxTween;
+import flixel.tweens.FlxEase;
+import flixel.util.FlxTimer;
 import flixel.addons.display.FlxRuntimeShader;
-import openfl.filters.ShaderFilter;
+import objects.Character;
 import objects.Note;
+import psychlua.LuaUtils;
+import psychlua.CustomSubstate;
 
 #if LUA_ALLOWED
 import psychlua.FunkinLua;
@@ -24,28 +23,32 @@ import tea.SScript;
 class HScript extends SScript
 {
     public var modFolder:String;
+    public var origin:String;
+
     #if LUA_ALLOWED
     public var parentLua:FunkinLua;
     #end
 
-    public var origin:String;
     var varsToBring:Dynamic = null;
 
-    override public function new(?parent:Dynamic, ?file:String, ?varsToBring:Any = null)
+    override public function new(?parent:Dynamic, ?file:String, ?varsToBring:Dynamic = null)
     {
         if(file == null) file = '';
         this.varsToBring = varsToBring;
+
         super(file, false, false);
 
         #if LUA_ALLOWED
         parentLua = parent;
-        if(parent != null) {
+        if(parent != null)
+        {
             this.origin = parent.scriptName;
             this.modFolder = parent.modFolder;
         }
         #end
 
-        if(scriptFile != null && scriptFile.length > 0) {
+        if(scriptFile != null && scriptFile.length > 0)
+        {
             this.origin = scriptFile;
             #if MODS_ALLOWED
             var myFolder:Array<String> = scriptFile.split('/');
@@ -91,11 +94,7 @@ class HScript extends SScript
         set('ShaderFilter', ShaderFilter);
         set('StringTools', StringTools);
 
-        #if flxanimate
-        set('FlxAnimate', FlxAnimate);
-        #end
-
-        // --- VARIABLES / FUNCTIONS ---
+        // --- VARIABLES & FUNCTIONS ---
         var getVar = function(name:String) {
             return if(PlayState.instance.variables.exists(name)) PlayState.instance.variables.get(name) else null;
         };
@@ -117,7 +116,6 @@ class HScript extends SScript
             PlayState.instance.addTextToDebug(text, color);
         };
 
-        // --- MOD SETTINGS ---
         var getModSetting = function(saveTag:String, ?modName:String = null) {
             if(modName == null) {
                 if(this.modFolder == null) {
@@ -129,168 +127,139 @@ class HScript extends SScript
             return LuaUtils.getModSetting(saveTag, modName);
         };
 
-        // --- RANDOM RANGE ---
-        set('randomRange', function(min:Float, max:Float) {
-            return min + Math.random() * (max - min);
-        });
-
-        // --- SOUND HELPERS ---
-        set('playSound', function(name:String, ?volume:Float = 1, ?loop:Bool = false) {
-            if(name == null) return null;
-            var s:FlxSound = FlxG.sound.play(Paths.sound(name), volume, loop);
-            return s;
-        });
-
-        set('stopSound', function(sound:FlxSound) {
-            if(sound != null) sound.stop();
-        });
-
-        set('setVolume', function(sound:FlxSound, volume:Float) {
-            if(sound != null) sound.volume = volume;
-        });
-
-        // --- VARIABLE HELPERS ---
+        // --- REGISTER FUNCTIONS ---
         set('getVar', getVar);
         set('setVar', setVar);
         set('removeVar', removeVar);
         set('debugPrint', debugPrint);
         set('getModSetting', getModSetting);
 
+        // --- RANDOM ---
+        set('randomRange', function(min:Float, max:Float) { return min + Math.random() * (max - min); });
+
+        // --- SOUND ---
+        set('playSound', function(name:String, ?volume:Float = 1, ?loop:Bool = false) {
+            if(name == null) return null;
+            return FlxG.sound.play(Paths.sound(name), volume, loop);
+        });
+
+        set('stopSound', function(sound:FlxSound) { if(sound != null) sound.stop(); });
+        set('setVolume', function(sound:FlxSound, volume:Float) { if(sound != null) sound.volume = volume; });
+
         // --- KEYS ---
-        set('keyJustPressed', function(name:String = '') {
-            name = name.toLowerCase();
-            switch(name) {
-                case 'left': return Controls.instance.NOTE_LEFT_P;
-                case 'down': return Controls.instance.NOTE_DOWN_P;
-                case 'up': return Controls.instance.NOTE_UP_P;
-                case 'right': return Controls.instance.NOTE_RIGHT_P;
-                default: return Controls.instance.justPressed(name);
-            }
-        });
+        set('keyJustPressed', function(name:String = '') { return ControlsHelper.getJustPressed(name); });
+        set('keyPressed', function(name:String = '') { return ControlsHelper.getPressed(name); });
+        set('keyReleased', function(name:String = '') { return ControlsHelper.getReleased(name); });
 
-        set('keyPressed', function(name:String = '') {
-            name = name.toLowerCase();
-            switch(name) {
-                case 'left': return Controls.instance.NOTE_LEFT;
-                case 'down': return Controls.instance.NOTE_DOWN;
-                case 'up': return Controls.instance.NOTE_UP;
-                case 'right': return Controls.instance.NOTE_RIGHT;
-                default: return Controls.instance.pressed(name);
-            }
-        });
-
-        set('keyReleased', function(name:String = '') {
-            name = name.toLowerCase();
-            switch(name) {
-                case 'left': return Controls.instance.NOTE_LEFT_R;
-                case 'down': return Controls.instance.NOTE_DOWN_R;
-                case 'up': return Controls.instance.NOTE_UP_R;
-                case 'right': return Controls.instance.NOTE_RIGHT_R;
-                default: return Controls.instance.justReleased(name);
-            }
-        });
-
-        // --- GAMEPAD ---
-        set('anyGamepadJustPressed', function(name:String) return FlxG.gamepads.anyJustPressed(name));
-        set('anyGamepadPressed', function(name:String) return FlxG.gamepads.anyPressed(name));
-        set('anyGamepadReleased', function(name:String) return FlxG.gamepads.anyJustReleased(name));
-
-        set('gamepadAnalogX', function(id:Int, ?leftStick:Bool = true) {
-            var c = FlxG.gamepads.getByID(id);
-            if(c == null) return 0.0;
-            return c.getXAxis(leftStick ? LEFT_ANALOG_STICK : RIGHT_ANALOG_STICK);
-        });
-
-        set('gamepadAnalogY', function(id:Int, ?leftStick:Bool = true) {
-            var c = FlxG.gamepads.getByID(id);
-            if(c == null) return 0.0;
-            return c.getYAxis(leftStick ? LEFT_ANALOG_STICK : RIGHT_ANALOG_STICK);
-        });
-
-        set('gamepadJustPressed', function(id:Int, name:String) {
-            var c = FlxG.gamepads.getByID(id);
-            return c != null && Reflect.getProperty(c.justPressed, name) == true;
-        });
-
-        set('gamepadPressed', function(id:Int, name:String) {
-            var c = FlxG.gamepads.getByID(id);
-            return c != null && Reflect.getProperty(c.pressed, name) == true;
-        });
-
-        set('gamepadReleased', function(id:Int, name:String) {
-            var c = FlxG.gamepads.getByID(id);
-            return c != null && Reflect.getProperty(c.justReleased, name) == true;
-        });
-
-        // --- TOUCHPAD (MOBILE) ---
+        // --- MOBILE TOUCH ---
         #if LUA_ALLOWED && mobile
-        set("addTouchPad", (DPadMode:String, ActionMode:String) -> {
-            PlayState.instance.makeLuaTouchPad(DPadMode, ActionMode);
-            PlayState.instance.addLuaTouchPad();
-        });
-
-        set("removeTouchPad", () -> {
-            PlayState.instance.removeLuaTouchPad();
-        });
-
-        set("touchPadJustPressed", function(button:Dynamic):Bool {
-            if(PlayState.instance.luaTouchPad == null) return false;
-            return PlayState.instance.luaTouchPadJustPressed(button);
-        });
-
-        set("touchPadPressed", function(button:Dynamic):Bool {
-            if(PlayState.instance.luaTouchPad == null) return false;
-            return PlayState.instance.luaTouchPadPressed(button);
-        });
-
-        set("touchPadJustReleased", function(button:Dynamic):Bool {
-            if(PlayState.instance.luaTouchPad == null) return false;
-            return PlayState.instance.luaTouchPadJustReleased(button);
-        });
+        set("addTouchPad", (DPadMode:String, ActionMode:String) -> { PlayState.instance.makeLuaTouchPad(DPadMode, ActionMode); PlayState.instance.addLuaTouchPad(); });
+        set("removeTouchPad", () -> PlayState.instance.removeLuaTouchPad() );
+        set("touchPadJustPressed", function(button:Dynamic):Bool { if(PlayState.instance.luaTouchPad == null) return false; return PlayState.instance.luaTouchPadJustPressed(button); });
+        set("touchPadPressed", function(button:Dynamic):Bool { if(PlayState.instance.luaTouchPad == null) return false; return PlayState.instance.luaTouchPadPressed(button); });
+        set("touchPadJustReleased", function(button:Dynamic):Bool { if(PlayState.instance.luaTouchPad == null) return false; return PlayState.instance.luaTouchPadJustReleased(button); });
         #end
 
-        // --- IMPORT VARS ---
+        // --- IMPORT VARIABLES ---
         if(varsToBring != null) {
-            for(key in Reflect.fields(varsToBring)) {
-                key = key.trim();
-                set(key, Reflect.field(varsToBring, key));
-            }
+            for(key in Reflect.fields(varsToBring)) set(key, Reflect.field(varsToBring, key));
             varsToBring = null;
         }
     }
 
-    public function executeCode(?funcToRun:String = null, ?funcArgs:Array<Dynamic> = null):TeaCall {
+    public function executeCode(?funcToRun:String = null, ?funcArgs:Array<Dynamic> = null):TeaCall
+    {
         if(funcToRun == null) return null;
-        if(!exists(funcToRun)) return null;
+        if(!exists(funcToRun)) { debugPrint(origin + ' - No HScript function named: $funcToRun', FlxColor.RED); return null; }
+
+        var callValue = call(funcToRun, funcArgs);
+        if(!callValue.succeeded) {
+            var e = callValue.exceptions[0];
+            if(e != null) debugPrint(origin + ' - ' + e, FlxColor.RED);
+            return null;
+        }
+        return callValue;
+    }
+
+    public function executeFunction(funcToRun:String, funcArgs:Array<Dynamic>):TeaCall
+    {
+        if(funcToRun == null) return null;
         return call(funcToRun, funcArgs);
     }
 
-    public function executeFunction(funcToRun:String = null, funcArgs:Array<Dynamic>):TeaCall {
-        if(funcToRun == null) return null;
-        return call(funcToRun, funcArgs);
-    }
+    #if LUA_ALLOWED
+    public static function implement(funk:FunkinLua)
+    {
+        funk.addLocalCallback("runHaxeCode", function(codeToRun:String, ?varsToBring:Dynamic = null, ?funcToRun:String = null, ?funcArgs:Array<Dynamic> = null):Dynamic {
+            initHaxeModuleCode(funk, codeToRun, varsToBring);
+            return funk.hscript.executeCode(funcToRun, funcArgs)?.returnValue;
+        });
 
-    override public function destroy() {
+        funk.addLocalCallback("runHaxeFunction", function(funcToRun:String, ?funcArgs:Array<Dynamic> = null) {
+            return funk.hscript.executeFunction(funcToRun, funcArgs)?.returnValue;
+        });
+    }
+    #end
+
+    override public function destroy()
+    {
         origin = null;
         #if LUA_ALLOWED parentLua = null; #end
         super.destroy();
     }
 }
 
-class CustomFlxColor {
+// --- CUSTOM COLORS ---
+class CustomFlxColor
+{
     public static var TRANSPARENT(default, null):Int = FlxColor.TRANSPARENT;
     public static var BLACK(default, null):Int = FlxColor.BLACK;
     public static var WHITE(default, null):Int = FlxColor.WHITE;
+    public static var GRAY(default, null):Int = FlxColor.GRAY;
     public static var RED(default, null):Int = FlxColor.RED;
     public static var GREEN(default, null):Int = FlxColor.GREEN;
     public static var BLUE(default, null):Int = FlxColor.BLUE;
 
-    public static function fromRGB(Red:Int, Green:Int, Blue:Int, Alpha:Int = 255):Int {
-        return cast FlxColor.fromRGB(Red, Green, Blue, Alpha);
-    }
+    public static function fromInt(value:Int):Int { return FlxColor.fromInt(value); }
+    public static function fromRGB(Red:Int, Green:Int, Blue:Int, Alpha:Int = 255):Int { return FlxColor.fromRGB(Red, Green, Blue, Alpha); }
+    public static function fromRGBFloat(Red:Float, Green:Float, Blue:Float, Alpha:Float = 1):Int { return FlxColor.fromRGBFloat(Red, Green, Blue, Alpha); }
+    public static function fromCMYK(C:Float, M:Float, Y:Float, K:Float, Alpha:Float = 1):Int { return FlxColor.fromCMYK(C,M,Y,K,Alpha); }
+    public static function fromHSB(H:Float, S:Float, B:Float, Alpha:Float = 1):Int { return FlxColor.fromHSB(H,S,B,Alpha); }
+    public static function fromHSL(H:Float, S:Float, L:Float, Alpha:Float = 1):Int { return FlxColor.fromHSL(H,S,L,Alpha); }
+    public static function fromString(str:String):Int { return FlxColor.fromString(str); }
+}
 
-    public static function fromRGBFloat(Red:Float, Green:Float, Blue:Float, Alpha:Float = 1):Int {
-        return cast FlxColor.fromRGBFloat(Red, Green, Blue, Alpha);
+// --- CONTROLS HELPER ---
+class ControlsHelper
+{
+    public static function getJustPressed(name:String):Bool {
+        name = name.toLowerCase();
+        switch(name) {
+            case 'left': return Controls.instance.NOTE_LEFT_P;
+            case 'down': return Controls.instance.NOTE_DOWN_P;
+            case 'up': return Controls.instance.NOTE_UP_P;
+            case 'right': return Controls.instance.NOTE_RIGHT_P;
+            default: return Controls.instance.justPressed(name);
+        }
+    }
+    public static function getPressed(name:String):Bool {
+        name = name.toLowerCase();
+        switch(name) {
+            case 'left': return Controls.instance.NOTE_LEFT;
+            case 'down': return Controls.instance.NOTE_DOWN;
+            case 'up': return Controls.instance.NOTE_UP;
+            case 'right': return Controls.instance.NOTE_RIGHT;
+            default: return Controls.instance.pressed(name);
+        }
+    }
+    public static function getReleased(name:String):Bool {
+        name = name.toLowerCase();
+        switch(name) {
+            case 'left': return Controls.instance.NOTE_LEFT_R;
+            case 'down': return Controls.instance.NOTE_DOWN_R;
+            case 'up': return Controls.instance.NOTE_UP_R;
+            case 'right': return Controls.instance.NOTE_RIGHT_R;
+            default: return Controls.instance.justReleased(name);
+        }
     }
 }
-#end
