@@ -46,7 +46,7 @@ class FPSCounter extends TextField
 		else
 			os = '\nOS: ${LimeSystem.platformName}' #if cpp + ' ${getArch() != 'Unknown' ? getArch() : ''}' #end + ' - ${LimeSystem.platformVersion}';
 
-		engineVersion = '\nMods Engine v${states.MainMenuState.modsEngineVersion}';
+		engineVersion = '\nB Slice v${states.MainMenuState.modsEngineVersion}';
 		
 		positionFPS(x, y);
 
