@@ -1,3 +1,5 @@
 # Friday Night Funkin' - B Slice Engine
-![ModsEngineLogo](docs/img/logo.png)
-Codes Used From Psych Engine But Better.
+![logo](docs/img/logo.png)
+
+Welcome to The Amazing Engine Made With Mods Engine Fork But Brenninho Things
+
