@@ -26,10 +26,6 @@ class MainMenuState extends MusicBeatState
 		'mods',
 		#end
 		
-		#if ACHIEVEMENTS_ALLOWED
-		'awards',
-		#end
-		
 		'credits',
 		'options'
 	];
