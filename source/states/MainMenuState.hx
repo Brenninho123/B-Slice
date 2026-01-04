@@ -110,7 +110,7 @@ class MainMenuState extends MusicBeatState
 			menuItem.x = 95;
 		}
 
-		modsEngineLogo = new FlxSprite(0).loadGraphic(Paths.image('modsEngineLogo'));
+		modsEngineLogo = new FlxSprite(0).loadGraphic(Paths.image('logo'));
 		modsEngineLogo.scrollFactor.x = 0;
 		modsEngineLogo.scrollFactor.y = 0;
 		modsEngineLogo.antialiasing = ClientPrefs.data.antialiasing;
