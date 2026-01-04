@@ -12,7 +12,7 @@ import options.OptionsState;
 
 class MainMenuState extends MusicBeatState
 {
-	public static var modsEngineVersion:String = '9.6.6'; // Latest Version bcuz v1.0.0 so late these today and This is also used for Discord RPC
+	public static var modsEngineVersion:String = '0.0.1'; // Latest Version bcuz v1.0.0 so late these today and This is also used for Discord RPC
 	public static var psychEngineVersion:String = '0.7.3';
 	public static var curSelected:Int = 0;
 
@@ -128,7 +128,7 @@ class MainMenuState extends MusicBeatState
 		modsEngineLogo.scale.y = 0.5;
 		add(modsEngineLogo);
 
-		var modsVer:FlxText = new FlxText(12, FlxG.height - 64, 0, "Mods Engine v" + modsEngineVersion, 12);
+		var modsVer:FlxText = new FlxText(12, FlxG.height - 64, 0, "B Slice Engine v" + modsEngineVersion, 12);
 		modsVer.scrollFactor.set();
 		modsVer.setFormat("VCR OSD Mono", 16, FlxColor.WHITE, LEFT, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
 		add(modsVer);
