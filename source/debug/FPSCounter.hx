@@ -85,12 +85,12 @@ class FPSCounter extends TextField
 	{
 		text = 
 		'FPS: $currentFPS' + 
-		'\nMemory: ${flixel.util.FlxStringUtil.formatBytes(memoryMegas)}' +
+		'\nMemory Counter: ${flixel.util.FlxStringUtil.formatBytes(memoryMegas)}' +
 		os +
 		engineVersion;
 
 		switch (ClientPrefs.data.themes) {
-			case 'Mods Engine':
+			case 'B Slice Engine':
 				textColor = 0xFF0000FF;
 			
 			case 'Psych Engine':
